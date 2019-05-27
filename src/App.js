@@ -9,7 +9,7 @@ import ListItemSecondaryAction from '@material-ui/core/ListItemSecondaryAction';
 import ListItemText from '@material-ui/core/ListItemText';
 import Checkbox from '@material-ui/core/Checkbox';
 import IconButton from '@material-ui/core/IconButton';
-import CommentIcon from '@material-ui/icons/Comment';
+import DeleteIcon from '@material-ui/icons/Delete';
 
 const TodosQuery = gql`
 {
@@ -69,8 +69,8 @@ class App extends Component {
         </ListItemIcon>
         <ListItemText primary={todo.text} />
         <ListItemSecondaryAction>
-        <IconButton edge="end" aria-label="Comments">
-        <CommentIcon />
+        <IconButton edge="end">
+        <DeleteIcon />
         </IconButton>
         </ListItemSecondaryAction>
         </ListItem>
