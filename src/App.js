@@ -1,6 +1,6 @@
 import React, { Component } from 'react';
 import gql from "graphql-tag";
-import { graphql } from 'react-apollo';
+import { graphql, compose } from 'react-apollo';
 import Paper from '@material-ui/core/Paper';
 import List from '@material-ui/core/List';
 import ListItem from '@material-ui/core/ListItem';
@@ -21,26 +21,41 @@ const TodosQuery = gql`
 }
 `;
 
+const UpdateMutation = gql`
+mutation($id: ID!, $complete: Boolean!) {
+  updateTodo(id: $id, complete: $complete)  
+}
+`;
+
 class App extends Component {
-  state = {
-    checked: [0], 
-  };
 
-  handleToggle = value => () => {
-    const { checked } = this.state
-    const currentIndex = checked.indexOf(value);
-    const newChecked = [...checked];
-
-    if (currentIndex === -1) {
-      newChecked.push(value);
-    } else {
-      newChecked.splice(currentIndex, 1);
-    }
-
-    this.setState({
-      checked: newChecked,
+  updateTodo = async todo => {
+    // update todo
+    await this.props.updateTodo({
+      variables: {
+        id: todo.id,
+        complete: !todo.complete
+      },
+      update: store => {
+        // Read the data from our cache for this query.
+        const data = store.readQuery({ query: TodosQuery });
+        // Add our comment from the mutation to the end.
+        data.todos = data.todos.map(x => x.id === todo.id ? {
+          ...todo,
+          complete: !todo.complete
+        } : x)
+        // Write our data back to the cache.
+        store.writeQuery({ query: TodosQuery, data });
+      }
     });
-  };
+  }
+
+  removeTodo = todo => {
+    // remove todo
+  
+  }
+
+
   render(){
     console.log(this.props)
     // destructuring props
@@ -57,24 +72,30 @@ class App extends Component {
       <div style={{ margin: 'auto', width: 400 }}>
       <Paper elevation={1}>
       <List>
-      {todos.map(todo => (
-        <ListItem key={todo.id} role={undefined} dense button onClick={this.handleToggle(todo)}>
-        <ListItemIcon>
-        <Checkbox
-        edge="start"
-        checked={todo.complete}
-        tabIndex={-1}
-        disableRipple
-        />
-        </ListItemIcon>
-        <ListItemText primary={todo.text} />
-        <ListItemSecondaryAction>
-        <IconButton edge="end">
-        <DeleteIcon />
-        </IconButton>
-        </ListItemSecondaryAction>
-        </ListItem>
-      ))}
+        {todos.map(todo => (
+          <ListItem 
+            key={todo.id} 
+            role={undefined}
+            dense 
+            button 
+            onClick={this.updateTodo(todo)}
+          >
+            <ListItemIcon>
+              <Checkbox
+              edge="start"
+              checked={todo.complete}
+              tabIndex={-1}
+              disableRipple
+              />
+            </ListItemIcon>
+            <ListItemText primary={todo.text} />
+            <ListItemSecondaryAction>
+              <IconButton onClick={() => this.removeTodo(todo) }>
+                <DeleteIcon />
+              </IconButton>
+            </ListItemSecondaryAction>
+          </ListItem>
+        ))}
       </List>
       </Paper>
       </div>
@@ -83,4 +104,6 @@ class App extends Component {
   }
 }
 
-export default graphql(TodosQuery)(App);
+export default compose(
+  graphql(UpdateMutation, {name: 'updateTodo'}),
+  graphql(TodosQuery))(App);
