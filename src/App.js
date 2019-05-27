@@ -22,9 +22,15 @@ const TodosQuery = gql`
 `;
 
 const UpdateMutation = gql`
-mutation($id: ID!, $complete: Boolean!) {
-  updateTodo(id: $id, complete: $complete)  
-}
+  mutation($id: ID!, $complete: Boolean!) {
+    updateTodo(id: $id, complete: $complete)  
+  }
+`;
+
+const RemoveMutation = gql`
+  mutation($id: ID!) {
+    removeTodo(id: $id)  
+  }
 `;
 
 class App extends Component {
@@ -43,15 +49,28 @@ class App extends Component {
         data.todos = data.todos.map(x => x.id === todo.id ? {
           ...todo,
           complete: !todo.complete
-        } : x)
+        } : x);
         // Write our data back to the cache.
         store.writeQuery({ query: TodosQuery, data });
       }
     });
-  }
+  };
 
-  removeTodo = todo => {
+  removeTodo = async todo => {
     // remove todo
+    await this.props.removeTodo({
+      variables: {
+        id: todo.id
+      },
+      update: store => {
+        // Read the data from our cache for this query.
+        const data = store.readQuery({ query: TodosQuery });
+        // Add our comment from the mutation to the end.
+        data.todos = data.todos.filter(x => x.id !== todo.id)
+        // Write our data back to the cache.
+        store.writeQuery({ query: TodosQuery, data });
+      }
+    });
   
   }
 
@@ -78,7 +97,7 @@ class App extends Component {
             role={undefined}
             dense 
             button 
-            onClick={this.updateTodo(todo)}
+            onClick={() => this.updateTodo(todo)}
           >
             <ListItemIcon>
               <Checkbox
@@ -105,5 +124,7 @@ class App extends Component {
 }
 
 export default compose(
+  graphql(RemoveMutation, {name: 'removeTodo'}),
   graphql(UpdateMutation, {name: 'updateTodo'}),
-  graphql(TodosQuery))(App);
+  graphql(TodosQuery)
+)(App);
