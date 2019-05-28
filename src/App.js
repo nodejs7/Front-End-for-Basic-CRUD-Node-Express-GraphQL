@@ -10,6 +10,7 @@ import ListItemText from '@material-ui/core/ListItemText';
 import Checkbox from '@material-ui/core/Checkbox';
 import IconButton from '@material-ui/core/IconButton';
 import DeleteIcon from '@material-ui/icons/Delete';
+import Form from './Form';
 
 const TodosQuery = gql`
 {
@@ -33,6 +34,15 @@ const RemoveMutation = gql`
   }
 `;
 
+const CreateTodoMutation = gql`
+  mutation($text: String!) {
+    createTodo(text: $text) {
+      id 
+      text
+      complete
+    }  
+  }
+`
 class App extends Component {
 
   updateTodo = async todo => {
@@ -74,6 +84,23 @@ class App extends Component {
   
   }
 
+  createTodo = async text => {
+    // create todo 
+    await this.props.createTodo({
+      variables: {
+        text,
+      },
+      update: (store, {data: { createTodo }}) => {
+        // Read the data from our cache for this query.
+        const data = store.readQuery({ query: TodosQuery });
+        // Add our comment from the mutation to the end.
+        data.todos = data.todos.unshift(createTodo)
+        // Write our data back to the cache.
+        store.writeQuery({ query: TodosQuery, data });
+      }
+    });
+    
+  }
 
   render(){
     console.log(this.props)
@@ -90,6 +117,7 @@ class App extends Component {
       <div style={{ display: 'flex' }}>
       <div style={{ margin: 'auto', width: 400 }}>
       <Paper elevation={1}>
+      <Form  submit={this.createTodo}/>
       <List>
         {todos.map(todo => (
           <ListItem 
@@ -124,6 +152,7 @@ class App extends Component {
 }
 
 export default compose(
+  graphql(CreateTodoMutation, {name: 'createTodo'}),
   graphql(RemoveMutation, {name: 'removeTodo'}),
   graphql(UpdateMutation, {name: 'updateTodo'}),
   graphql(TodosQuery)
